@@ -7,8 +7,9 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import classification_report, accuracy_score
 
-data = pd.read_csv("student_burnout_data.csv")
 
+data = pd.read_csv("student_burnout_data.csv")
+print(data["burnout_risk"].value_counts())
 
 X = data.drop("burnout_risk", axis=1)
 y = data["burnout_risk"]
