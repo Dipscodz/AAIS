@@ -22,7 +22,7 @@ burnout_score = (
 
 burnout_score += np.random.normal(0, 3, n_samples)
 
-# Force perfect 50-50 split
+
 sorted_indices = np.argsort(burnout_score)
 burnout_risk = np.zeros(n_samples)
 burnout_risk[sorted_indices[n_samples//2:]] = 1
