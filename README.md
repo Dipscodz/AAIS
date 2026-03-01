@@ -98,3 +98,16 @@ Scikit-Learn
 Matplotlib
 
 Joblib
+## 🏗 System Architecture
+
+```mermaid
+flowchart TB
+    U[Student/User] --> FE[Frontend UI]
+    FE --> API[FastAPI Backend]
+    API --> AUTH[JWT Authentication]
+    API --> PRE[Preprocessing Layer]
+    PRE --> ML[ML Model (Scikit-learn)]
+    API --> LLM[AI Recommendation Engine]
+    API --> DB[(Database)]
+    API --> FE
+```
