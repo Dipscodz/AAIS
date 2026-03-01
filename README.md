@@ -100,13 +100,15 @@ Matplotlib
 Joblib
 ## 🏗 System Architecture
 
+## 🏗 System Architecture
+
 ```mermaid
 flowchart TB
     U[Student/User] --> FE[Frontend UI]
     FE --> API[FastAPI Backend]
     API --> AUTH[JWT Authentication]
     API --> PRE[Preprocessing Layer]
-    PRE --> ML[ML Model (Scikit-learn)]
+    PRE --> ML[ML Model - Scikit Learn]
     API --> LLM[AI Recommendation Engine]
     API --> DB[(Database)]
     API --> FE
