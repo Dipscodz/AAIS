@@ -1,23 +1,35 @@
 from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
-from .database import engine, SessionLocal
-from .models_db import Base, User, Prediction
-from .schemas import StudentData, UserCreate, UserLogin
-from .auth import hash_password, verify_password, create_access_token
-from .model_loader import model, scaler
+from sqlalchemy import desc
 import numpy as np
+
+from backend.database import engine, SessionLocal
+from backend.models_db import Base, User, Prediction
+from backend.schemas import StudentData, UserCreate, UserLogin
+from backend.auth import (
+    hash_password,
+    verify_password,
+    create_access_token,
+    get_current_user
+)
+from backend.model_loader import model, scaler
+from backend.llm_service import generate_burnout_advice
+
+app = FastAPI(title="AAIS Burnout Intelligence System")
 
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="AAIS SaaS Backend")
 
-
+# -------------------------
+# Database Dependency
+# -------------------------
 def get_db():
     db = SessionLocal()
     try:
         yield db
     finally:
         db.close()
+
 
 
 @app.post("/register")
@@ -39,7 +51,9 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
     return {"message": "User created successfully"}
 
 
-    
+# -------------------------
+# Login
+# -------------------------
 @app.post("/login")
 def login(user: UserLogin, db: Session = Depends(get_db)):
 
@@ -50,16 +64,23 @@ def login(user: UserLogin, db: Session = Depends(get_db)):
 
     token = create_access_token({"sub": db_user.email})
 
-    return {"access_token": token}
+    return {
+        "access_token": token,
+        "token_type": "bearer"
+    }
 
 
-# -------------------
-# Predict + Save History
-# -------------------
-@app.post("/predict/{user_id}")
-def predict(user_id: int, data: StudentData, db: Session = Depends(get_db)):
+# -------------------------
+# Predict Burnout
+# -------------------------
+@app.post("/predict")
+def predict(
+    data: StudentData,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
 
-    input_data = np.array([[
+    input_data = np.array([[ 
         data.attendance,
         data.assignment_rate,
         data.study_hours,
@@ -71,7 +92,9 @@ def predict(user_id: int, data: StudentData, db: Session = Depends(get_db)):
     ]])
 
     input_scaled = scaler.transform(input_data)
+
     probability = model.predict_proba(input_scaled)[0][1]
+    probability = float(probability)
 
     if probability > 0.7:
         risk = "High"
@@ -80,29 +103,50 @@ def predict(user_id: int, data: StudentData, db: Session = Depends(get_db)):
     else:
         risk = "Low"
 
-    new_prediction = Prediction(
-        burnout_probability=float(probability),
+    advice = generate_burnout_advice(
+        user_data=data.dict(),
         risk_level=risk,
-        user_id=user_id
+        risk_score=round(probability * 100, 2)
+    )
+
+    new_prediction = Prediction(
+        burnout_probability=probability,
+        risk_level=risk,
+        advice=advice,
+        user_id=current_user.id
     )
 
     db.add(new_prediction)
     db.commit()
 
+    # Check last 3 predictions
+    recent = db.query(Prediction).filter(
+        Prediction.user_id == current_user.id
+    ).order_by(desc(Prediction.id)).limit(3).all()
+
+    high_count = sum(1 for r in recent if r.risk_level == "High")
+    alert = True if high_count >= 3 else False
+
     return {
-        "burnout_probability": float(probability),
-        "risk_level": risk
+        "burnout_probability": probability,
+        "risk_level": risk,
+        "risk_percentage": round(probability * 100, 2),
+        "alert": alert,
+        "advice": advice
     }
 
 
-# -------------------
-# Get User History
-# -------------------
-@app.get("/history/{user_id}")
-def get_history(user_id: int, db: Session = Depends(get_db)):
+# -------------------------
+# Prediction History
+# -------------------------
+@app.get("/history")
+def get_history(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
 
     predictions = db.query(Prediction).filter(
-        Prediction.user_id == user_id
-    ).all()
+        Prediction.user_id == current_user.id
+    ).order_by(desc(Prediction.id)).all()
 
     return predictions
