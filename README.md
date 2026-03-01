@@ -31,37 +31,7 @@ Declining mood patterns
 
 Early prediction enables institutions to intervene before academic decline occurs.
 
-🏗️ System Architecture
 
-Synthetic Data Generator
-
-Creates realistic student behavioral data
-
-Models correlation between stress, sleep, mood, screen time
-
-Produces labeled burnout risk dataset
-
-Data Preprocessing
-
-Feature scaling
-
-Train-test split
-
-Class balance verification
-
-Baseline Model
-
-Logistic Regression classifier
-
-Performance evaluation (Accuracy, Precision, Recall, F1)
-
-Advanced Models (Planned)
-
-Random Forest
-
-Gradient Boosting
-
-Neural Network classifier
 
 📊 Features Used
 Feature	Description
@@ -103,13 +73,11 @@ Joblib
 ## 🏗 System Architecture
 
 ```mermaid
-flowchart TB
-    U[Student/User] --> FE[Frontend UI]
-    FE --> API[FastAPI Backend]
-    API --> AUTH[JWT Authentication]
-    API --> PRE[Preprocessing Layer]
-    PRE --> ML[ML Model - Scikit Learn]
-    API --> LLM[AI Recommendation Engine]
-    API --> DB[(Database)]
-    API --> FE
+flowchart LR
+    Frontend --> FastAPI_Backend
+    FastAPI_Backend --> JWT_Authentication
+    FastAPI_Backend --> Preprocessing
+    Preprocessing --> ML_Model
+    FastAPI_Backend --> AI_Recommendation_Engine
+    FastAPI_Backend --> Database
 ```
